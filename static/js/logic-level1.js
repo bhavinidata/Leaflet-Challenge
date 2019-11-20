@@ -1,74 +1,26 @@
 
 function createMap(earthquakePoint){
-    // Create the tile layer for outdoor map
-    var outdoormap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    // Create the tile layer that will be the background of our map
+    var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/light-v9/tiles/256/{z}/{x}/{y}?access_token={accessToken}", {
+        attribution: "Map data &copy; <a href=\"http://openstreetmap.org\">OpenStreetMap</a> contributors, <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"http://mapbox.com\">Mapbox</a>",
         maxZoom: 18,
-        id: "mapbox.outdoors",
         accessToken: API_KEY
-      });
-    // Create the tile layer for satellite map
-      var satellitemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-        maxZoom: 18,
-        id: "mapbox.satellite",
-        // id: "mapbox.dark",
-        accessToken: API_KEY
-      });
-    // Create the tile layer for light map
-      var lightmap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-        maxZoom: 18,
-        id: "mapbox.light",
-        accessToken: API_KEY
-      });
-    
-    var faultlines = new L.LayerGroup();
-    (async function getFaultLines(){
-        const faultlineurl = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_plates.json";
-        const falulineResponse = await d3.json(faultlineurl)
-        console.log(faultlineurl)
-        console.log(falulineResponse.features)
-        // createFaultlines(falulineResponse)
-        var features = falulineResponse.features;
-        L.geoJSON(features,{
-        style: function(features){
-            return {color: "orange",
-                    fillOpacity: 0,
-                    weight:2}
-            
-        }
-    }).addTo(faultlines)
-    })()
-
+    });
     // Create a baseMaps object to hold the lightmap layer
     var baseMaps = {
-        "Light Map": lightmap,
-        "Satellite Map" : satellitemap,
-        "Outdoor Map" : outdoormap
+        "Light Map": lightmap
     };
-
-
-     // Create an overlayMaps object to hold the earthquake circle marker layer
+     // Create an overlayMaps object to hold the bikeStations layer
      var overlayMaps = {
-        "Earthquakes": earthquakePoint,
-        "Faultlines" : faultlines
-
+        "EarthQuake Locations": earthquakePoint
     };
 
     // Create the map object with options
     var map = L.map("map", {
         center: [33, -112],
         zoom: 4,
-        layers: [lightmap, faultlines, earthquakePoint]
+        layers: [lightmap, earthquakePoint]
     });
-
-// Create a layer control
-// Pass in baseMaps and overlayMaps
-// Add the layer control to the map
-L.control.layers(baseMaps, overlayMaps, {
-collapsed: false
-}).addTo(map);
 
 var legend = L.control({position: 'bottomright'});
 legend.onAdd = function (map) {
@@ -114,11 +66,11 @@ function createMarkers(response){
         layer.bindPopup("<h3>" + feature.properties.place +
             "</h3><hr><p>" + new Date(feature.properties.time) + "</p><hr><p>"
             + feature.properties.mag)
-        };
+    };
     
     // function to define the circle size based on magnitude
     function radSize(magnitude){
-        return magnitude * 3;
+        return magnitude * 4;
     };
 
   // Create a GeoJSON layer containing the features array
@@ -129,7 +81,6 @@ function createMarkers(response){
                 radius: radSize(features.properties.mag),
             })
         },
-        onEachFeature : onEachFeature,
         style: function(features){
             return{
                 fillColor: circleColor(features.properties.mag),
@@ -138,14 +89,12 @@ function createMarkers(response){
                 color: "black"
             }
         },
-       
+        onEachFeature: onEachFeature
     })
 
     // Call CreateMap function by sending earthquakeMarker layer.
     createMap(earthquakeMarkers)
 }
-
-
 
 // Perform an API call to USGS GeoJSON Feed page to get all earthquake information from past 7 days. 
 // Call createMarkers when complete
